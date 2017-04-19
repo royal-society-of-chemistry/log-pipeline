@@ -1,0 +1,221 @@
+#!/bin/bash
+
+source CleanLogFiles.cfg
+
+BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+WORKDIR="${BASEDIR}/_WORK"
+HOLDDIR="${BASEDIR}/_HOLD/_CLEAN_LOGS"
+DONEDIR="${BASEDIR}/_DONE/_CLEAN_LOGS"
+PIDDIR="${BASEDIR}/_PIDS/_CLEAN_LOGS"
+LOGDIR="${BASEDIR}/_LOGS/_CLEAN_LOGS"
+
+ALLPIDDIR="${BASEDIR}/../../_PIDS/_PROCESS"
+
+LIBDIR="${BASEDIR}/../../_LIB"
+PICKLEDIR="${LIBDIR}/pickle"
+DATADIR="${LIBDIR}/data"
+
+SYSDIR="${BASEDIR}/../../_SYS"
+PYTHONDIR="${SYSDIR}/python"
+
+mkdir -p "${WORKDIR}"
+mkdir -p "${HOLDDIR}"
+mkdir -p "${DONEDIR}"
+mkdir -p "${PIDDIR}"
+mkdir -p "${LOGDIR}"
+mkdir -p "${ALLPIDDIR}"
+mkdir -p "${FINALDIR}"
+mkdir -p "${FINALBOTDIR}"
+
+shopt -s nullglob
+IFS=$(echo -en "\n\b")
+
+# Limit the number of processes that may run simultaneously; also avoid the case where
+# one pipeline absorbs all of the available cores. For X cores, total processing tasks
+# may not exceed X, and the number of instances of this process may not exceed X-1
+if (( $( ls -1 ${PIDDIR} | wc -l ) < $((${CORES}-1)) && $( ls -1 ${ALLPIDDIR} | wc -l ) < ${CORES} ))
+then
+	# Loop through user-defined root folders containing log archive files
+	for SRCDIR in ${SOURCEDIR[@]}
+	do
+		# Handle possible subdirectories therein
+		for SOURCEDIR in $(find ${SRCDIR}/ -type d -follow)
+		do
+			# Check for new archives
+			for file in ${SOURCEDIR}/*.rar
+			do
+				# Set flag that controls processing
+				OKToProcess="Y"
+
+				# Isolate archive base name 
+				inputname=`basename -s .rar ${file}`
+
+				# Check if the file is already being processed by another instance
+				if [ -e ${HOLDDIR}/${inputname}.hold ]
+				then
+					OKToProcess="N"
+				fi
+
+				# Check if the file has already been processed
+				if [ -e ${DONEDIR}/${inputname}.done ]
+				then
+					OKToProcess="N"
+				fi 
+
+				# If file passes the initial tests, begin detailed checking. Recheck number of running processes in case more have started since the last check
+				if [[ ${OKToProcess} = "Y" ]] && (( $( ls -1 ${PIDDIR} | wc -l ) < $((${CORES}-1)) && $( ls -1 ${ALLPIDDIR} | wc -l ) < ${CORES} ))
+				then
+
+					echo "#############################"
+					echo "PROCESSING ${inputname}.rar"
+
+					# Create PID files
+					echo $$ >"${PIDDIR}/$$.pid"
+					echo $$ >"${ALLPIDDIR}/$$.pid"
+
+					# Create HOLD file
+					echo "holding" >"${HOLDDIR}/${inputname}.hold"
+
+					# Create working folder
+					mkdir ${WORKDIR}/$$
+
+					# Check RAR file, then either process it or log a "corrupt RAR" error		
+					(
+						(
+							unrar t "${file}" > ${LOGDIR}/${inputname}.log 2> ${LOGDIR}/${inputname}.log
+						) && (
+
+							# decompress RAR file
+							unrar e "${file}" "${WORKDIR}/$$" > ${LOGDIR}/${inputname}.log 2> ${LOGDIR}/${inputname}.log
+
+							# Gunzip any GZ files from archive
+							for logfile in ${WORKDIR}/$$/*.gz
+							do
+								gunzip ${logfile}
+							done
+
+							# Loop through all files from the RAR archive now in working folder
+							for logfile in ${WORKDIR}/$$/*
+							do
+								# Get base name of raw log file
+								oldname=`basename -s .log ${logfile}`
+
+								# Set the starting values for the filename and processing flag
+								processingname=""
+								OKToProcess="N"
+
+								# Check filename against the selection of user-defined patterns expected from the config file
+								# If matched, update the flags and break the loop
+								for _idx in $(seq 1 ${#SEDPATF[@]})
+								do
+									_match=$(echo ${oldname}| sed -r -n -e 'h;/'"${SEDPATF[${_idx}]}"'/!{s/^.*$/NO/;p;d;g};/'"${SEDPATF[${_idx}]}"'/{s/^.*$/YES/;p}' )
+									if [ ${_match} == "YES" ]
+									then
+										processingname=$(echo ${oldname}| sed -r -e 's/'"${SEDPATF[${_idx}]}"'/'"${SEDPATR[${_idx}]}"'/')
+										OKToProcess="Y"
+										break
+									fi
+								done
+
+								# Rename and move correctly named LOG files, log details of files named badly
+								if [[ ${OKToProcess} = "Y" ]] && [[ ${processingname} != "" ]]
+								then
+
+									echo "#############################"
+									echo "PROCESSING ${processingname}"
+
+									echo "Renaming Log File"
+									sed 's/\r//g' "${logfile}" >"${WORKDIR}/$$/${processingname}-new"
+									rm "${logfile}"
+									mv "${WORKDIR}/$$/${processingname}-new" "${WORKDIR}/$$/${processingname}.log"
+
+									echo "Format Change"
+									python3 "${PYTHONDIR}/NCSA2W3C.py" "${WORKDIR}/$$" "${processingname}" "${WORKDIR}/$$" "${processingname}_ncsa2w3c"
+									rm "${WORKDIR}/$$/${processingname}.log"
+
+									echo "Add Columns"
+									python3 "${PYTHONDIR}/AddColumns_23to47.py" "${WORKDIR}/$$" "${processingname}_ncsa2w3c" "${WORKDIR}/$$" "${processingname}_addcols"
+									rm "${WORKDIR}/$$/${processingname}_ncsa2w3c.log"
+
+									echo "Clean Noise"
+									python3 "${PYTHONDIR}/CleanNoise.py" "${WORKDIR}/$$" "${processingname}_addcols" "${WORKDIR}/$$" "${processingname}_cleannoise"
+									rm "${WORKDIR}/$$/${processingname}_addcols.log"
+
+									echo "UAstring Analysis"
+									python3 "${PYTHONDIR}/UAAnalysis.py" "${WORKDIR}/$$" "${processingname}_cleannoise" "${WORKDIR}/$$" "${processingname}_nobots" "${processingname}_bots" "${PICKLEDIR}/ua_str.pickle" "${PICKLEDIR}/ua_data.pickle" "${PICKLEDIR}/browscap_data_${BCVER}.pickle" "${PICKLEDIR}/browscap_trie_${BCVER}.pickle"
+									rm "${WORKDIR}/$$/${processingname}_cleannoise.log"
+
+									echo "Add Session"
+									python3 "${PYTHONDIR}/AddSession.py" "${WORKDIR}/$$" "${processingname}_nobots" "${WORKDIR}/$$" "${processingname}_session"
+									python3 "${PYTHONDIR}/AddSession.py" "${WORKDIR}/$$" "${processingname}_bots" "${WORKDIR}/$$" "${processingname}_botsession"
+									rm "${WORKDIR}/$$/${processingname}_nobots.log"
+									rm "${WORKDIR}/$$/${processingname}_bots.log"
+
+									echo "Add Referrer"
+									python3 "${PYTHONDIR}/AddReferrer.py" "${WORKDIR}/$$" "${processingname}_session" "${WORKDIR}/$$" "${processingname}_referrer"
+									python3 "${PYTHONDIR}/AddReferrer.py" "${WORKDIR}/$$" "${processingname}_botsession" "${WORKDIR}/$$" "${processingname}_botreferrer"
+									rm "${WORKDIR}/$$/${processingname}_session.log"
+									rm "${WORKDIR}/$$/${processingname}_botsession.log"
+
+									echo "Add GeoIP"
+									python3 "${PYTHONDIR}/AddGeoData.py" "${WORKDIR}/$$" "${processingname}_referrer" "${WORKDIR}/$$" "${processingname}_geodata" "${DATADIR}/GeoLiteCity.dat"
+									python3 "${PYTHONDIR}/AddGeoData.py" "${WORKDIR}/$$" "${processingname}_botreferrer" "${WORKDIR}/$$" "${processingname}_botgeodata" "${DATADIR}/GeoLiteCity.dat"
+									rm "${WORKDIR}/$$/${processingname}_referrer.log"
+									rm "${WORKDIR}/$$/${processingname}_botreferrer.log"
+
+									echo "Add IP Lookup"
+									python3 "${PYTHONDIR}/IPLookUp.py" "${WORKDIR}/$$" "${processingname}_geodata" "${WORKDIR}/$$" "${processingname}_ipdata" "${DATADIR}/mmorg.dat"
+									python3 "${PYTHONDIR}/IPLookUp.py" "${WORKDIR}/$$" "${processingname}_botgeodata" "${WORKDIR}/$$" "${processingname}_botipdata" "${DATADIR}/mmorg.dat"
+									rm "${WORKDIR}/$$/${processingname}_geodata.log"
+									rm "${WORKDIR}/$$/${processingname}_botgeodata.log"
+
+									echo "Add Activity Data"
+									python3 "${PYTHONDIR}/AddActivityData.py" "${WORKDIR}/$$" "${processingname}_ipdata" "${WORKDIR}/$$" "${processingname}_actdata"
+									python3 "${PYTHONDIR}/AddActivityData.py" "${WORKDIR}/$$" "${processingname}_botipdata" "${WORKDIR}/$$" "${processingname}_bots"
+									rm "${WORKDIR}/$$/${processingname}_ipdata.log"
+									rm "${WORKDIR}/$$/${processingname}_botipdata.log"
+
+									echo "Deduplicate"
+									python3 "${PYTHONDIR}/Deduplicate.py" "${WORKDIR}/$$" "${processingname}_actdata" "${WORKDIR}/$$" "${processingname}"
+									rm "${WORKDIR}/$$/${processingname}_actdata.log"
+
+									echo "Zipping and Storing"
+									gzip "${WORKDIR}/$$/${processingname}.log"
+									mv "${WORKDIR}/$$/${processingname}.log.gz" "${FINALDIR}/${processingname}.gz"
+
+									mv "${WORKDIR}/$$/${processingname}_bots.log" "${WORKDIR}/$$/${processingname}.log"
+									gzip "${WORKDIR}/$$/${processingname}.log"
+									mv "${WORKDIR}/$$/${processingname}.log.gz" "${FINALBOTDIR}/${processingname}.gz"
+
+									# If error log exists from previous corrupt RAR files, delete it				
+									if [ -e "${LOGDIR}/${inputname}.log" ]
+									then
+										rm -Rf "${LOGDIR}/${inputname}.log"
+									fi
+								else
+									echo ${oldname} ": LOG filename wrong" >>"${LOGDIR}/${inputname}.log"
+								fi
+							done
+
+							# Mark RAR file as processed
+							echo "done" >>"${DONEDIR}/${inputname}.done"
+						)
+					) || ( 
+						echo $file ": RAR file corrupt" >"${LOGDIR}/${inputname}.log"
+					)
+
+					# Delete temp DIR
+					rm -Rf ${WORKDIR}/$$
+
+					# Remove HOLD file
+					rm -Rf ${HOLDDIR}/${inputname}.hold
+
+					# Remove PID files		
+					rm -Rf ${PIDDIR}/$$.pid
+					rm -Rf ${ALLPIDDIR}/$$.pid
+				fi
+			done
+		done
+	done
+fi

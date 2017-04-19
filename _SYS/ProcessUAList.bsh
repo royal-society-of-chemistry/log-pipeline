@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# SET DIRS
+BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+LIBDIR="${BASEDIR}/../_LIB"
+PICKLEDIR="${LIBDIR}/pickle"
+DATADIR="${LIBDIR}/data"
+
+SYSDIR="${BASEDIR}/../_SYS"
+PYTHONDIR="${SYSDIR}/python"
+
+python3 ${PYTHONDIR}/InitUAList.py ${PICKLEDIR}

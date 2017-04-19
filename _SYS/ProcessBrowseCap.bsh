@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# SET DIRS
+BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+LIBDIR="${BASEDIR}/../_LIB"
+PICKLEDIR="${LIBDIR}/pickle"
+DATADIR="${LIBDIR}/data"
+CSVDIR="${LIBDIR}/csv"
+
+SYSDIR="${BASEDIR}/../_SYS"
+PYTHONDIR="${SYSDIR}/python"
+
+python3 ${PYTHONDIR}/ProcessBrowseCap.py ${DATADIR} ${CSVDIR} ${PICKLEDIR}
+
+
+
+

@@ -1,0 +1,92 @@
+#!/bin/bash
+
+source ProcessCustomIPs.cfg
+
+# SET DIRS
+BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+LIBDIR="${BASEDIR}/../_LIB"
+PICKLEDIR="${LIBDIR}/pickle"
+DATADIR="${LIBDIR}/data"
+CSVDIR="${LIBDIR}/csv"
+
+SYSDIR="${BASEDIR}/../_SYS"
+PYTHONDIR="${SYSDIR}/python"
+
+WORKDIR="${BASEDIR}/../_WORK"
+
+# Filename for resultant DAT file, used as part of the main pipeline
+OUTPUTFILE="mmorg"
+
+# Create working folder
+mkdir -p ${WORKDIR}/$$
+
+# Make single csv of IP/name pairs
+for _idx in $(seq 1 ${#IPS[@]})
+do
+	cat ${CSVDIR}/${IPS[${_idx}]} >>${WORKDIR}/$$/_allips.csv
+done
+
+# Combine text lists of IP data into a single source
+python3 ${PYTHONDIR}/ProcessCustomIPs.py "${WORKDIR}/$$" "_allips.csv" "CustomIPs.csv"
+
+# Clear working area
+if [ -f ${WORKDIR}/$$/_final.csv ]; then
+	rm ${WORKDIR}/$$/_final.csv
+fi
+if [ -f ${WORKDIR}/$$/_temp.csv ]; then
+	rm ${WORKDIR}/$$/_temp.csv
+fi
+if [ -f ${WORKDIR}/$$/_error.txt ]; then
+	rm ${WORKDIR}/$$/_error.txt
+fi
+if [ -f ${WORKDIR}/$$/_cache.csv ]; then
+	rm ${WORKDIR}/$$/_cache.csv
+fi
+
+# initialise
+count=0
+test=0
+
+# read and compile single source in batches of lines 
+while read p || test=1; do
+	if [[ "${test}" != 1 ]]; then
+		count=$((count+1))
+		echo ${p} >>${WORKDIR}/$$/_cache.csv
+		echo ${p} >>${WORKDIR}/$$/_temp.csv
+	fi
+	if [[ "${count}" == 5000 || "${test}" == 1 ]]; then
+
+		if python ${PYTHONDIR}/csv2dat.py -w "${DATADIR}/${OUTPUTFILE}.dat" mmorg "${WORKDIR}/$$/_temp.csv"; then
+			while read q; do
+				echo ${q} >>${WORKDIR}/$$/_final.csv
+			done <${WORKDIR}/$$/_cache.csv
+		else
+			rm ${WORKDIR}/$$/_temp.csv
+			cp ${WORKDIR}/$$/_final.csv ${WORKDIR}/$$/_temp.csv
+			while read q; do
+				echo ${q} >>${WORKDIR}/$$/_temp.csv
+				if python ${PYTHONDIR}/csv2dat.py -w "${DATADIR}/${OUTPUTFILE}.dat" mmorg "${WORKDIR}/$$/_temp.csv"; then
+					echo ${q} >>${WORKDIR}/$$/_final.csv
+				else
+					rm ${WORKDIR}/$$/_temp.csv
+					cp ${WORKDIR}/$$/_final.csv ${WORKDIR}/$$/_temp.csv
+					echo ${q} >>${WORKDIR}/$$/_error.txt
+				fi
+			done <${WORKDIR}/$$/_cache.csv
+		fi
+		count=0
+		rm ${WORKDIR}/$$/_cache.csv
+		if [[ "${test}" == 1 ]]; then
+			break
+		fi
+	fi
+done <${WORKDIR}/$$/CustomIPs.csv
+
+rm ${WORKDIR}/$$/_final.csv
+rm ${WORKDIR}/$$/_temp.csv
+rm ${WORKDIR}/$$/CustomIPs.csv
+
+# Delete temp DIR
+rm -Rf ${WORKDIR}/$$
+
