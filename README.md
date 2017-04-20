@@ -34,8 +34,6 @@ This repository contains the code for a data pipeline that takes as its input we
 * Ubuntu Linux
 * Python 3
 
-### Database configuration ###
-### How to run tests ###
 ### Deployment instructions ###
 
 ## Who do I talk to? ##
