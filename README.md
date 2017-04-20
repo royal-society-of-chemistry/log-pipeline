@@ -32,7 +32,7 @@ This repository contains the code for a data pipeline that takes as its input we
 ### Dependencies ###
 
 * Ubuntu Linux
-* Python 3
+* Python 3 (with packages: binascii, csv, datetime, fileinput, GeoIP, ipaddress, itertools, logging, marisa_trie, optparse, os, pickle, re, socket, struct, sys, time)
 
 ### Deployment instructions ###
 
