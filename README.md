@@ -36,19 +36,17 @@ This repository contains the code for a data pipeline that takes as its input we
 
 ### Deployment instructions ###
 
- 1.  Clone the bitbucket repository to a folder ("[yourfolder]") on your local machine
- 2.  Go to: https://dev.maxmind.com/geoip/legacy/geolite/ and download the GeoLite City DAT file ("GeoLiteCity.dat"), and place it in the "[yourfolder]/_LIB/data" folder.
- 3.  Go to: https://browscap.org/ then download the "browscap.csv" file, and place it in the "[yourfolder]/_LIB/csv" folder.
- 4.  Run the script "[yourfolder]/_SYS/ProcessBrowscap.bsh". After a few minutes two files should appear in the "[yourfolder]/_LIB/pickle" folder: browscap_data_XXXX.pickle and browscap_trie_XXXX.pckle, where "XXXX" is the version number of the browscap release.
- 5.  The process to generate the custom user agent list requires several steps:
-  (a) Edit/create the file(s) that contain the details of user agent strings specific to your setup. Details of formatting can be found in "[yourfolder]/_SYS/ProcessUAList.cfg". An example file with a basic set of strings is here: "[yourfolder]/_LIB/csv/uas.csv".
-  (b) Edit "[yourfolder]/_SYS/ProcessUAList.cfg" to list all the files created in step (a).
-  (c) Run the script "[yourfolder]/_SYS/ProcessUAList.bsh". Two files should appear in the "[yourfolder]/_LIB/pickle" folder: ua_data.pickle and ua_str.pickle.
- 6.  The process to generate the IP-based organisation lookup database requires several steps:
-  (a) Edit/create the files that contain the details of the IP to name relationships. Details of formatting can be found in "[yourfolder]/_SYS/ProcessCustomIPs.cfg". An example file with the basic internal IP range is here: "[yourfolder]/_LIB/csv/ips.csv"
-  (b) Edit "[yourfolder]/_SYS/ProcessCustomIPs.cfg" to list all the files created in step (a).
-  (c) Run the script "[yourfolder]/_SYS/ProcessCustomIPs.bsh". A single file should appear in the "[yourfolder]/_LIB/data" folder: mmorg.dat
- 7.  Edit the file [yourfolder]/_PIPES/Pipe1/CleanLogFiles.cfg to:
+1. Clone the bitbucket repository to a folder ("[yourfolder]") on your local machine
+2. Go to: https://dev.maxmind.com/geoip/legacy/geolite/ and download the GeoLite City DAT file ("GeoLiteCity.dat"), and place it in the "[yourfolder]/_LIB/data" folder.
+3. Go to: https://browscap.org/ then download the "browscap.csv" file, and place it in the "[yourfolder]/_LIB/csv" folder.
+4. Run the script "[yourfolder]/_SYS/ProcessBrowscap.bsh". After a few minutes two files should appear in the "[yourfolder]/_LIB/pickle" folder: browscap_data_XXXX.pickle and browscap_trie_XXXX.pckle, where "XXXX" is the version number of the browscap release.
+5. Edit/create the file(s) that contain the details of user agent strings specific to your setup. Details of formatting can be found in "[yourfolder]/_SYS/ProcessUAList.cfg". An example file with a basic set of strings is here: "[yourfolder]/_LIB/csv/uas.csv".
+6. Edit "[yourfolder]/_SYS/ProcessUAList.cfg" to list all the files created in step (a).
+7. Run the script "[yourfolder]/_SYS/ProcessUAList.bsh". Two files should appear in the "[yourfolder]/_LIB/pickle" folder: ua_data.pickle and ua_str.pickle.
+8. Edit/create the files that contain the details of the IP to name relationships. Details of formatting can be found in "[yourfolder]/_SYS/ProcessCustomIPs.cfg". An example file with the basic internal IP range is here: "[yourfolder]/_LIB/csv/ips.csv"
+9. Edit "[yourfolder]/_SYS/ProcessCustomIPs.cfg" to list all the files created in step (a).
+10. Run the script "[yourfolder]/_SYS/ProcessCustomIPs.bsh". A single file should appear in the "[yourfolder]/_LIB/data" folder: mmorg.dat
+11. Edit the file [yourfolder]/_PIPES/Pipe1/CleanLogFiles.cfg to:
 
   (a) add appropriate find/replace regex patterns
   (b) set the number of processor cores
