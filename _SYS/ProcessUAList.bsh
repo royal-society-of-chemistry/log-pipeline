@@ -1,13 +1,31 @@
 #!/bin/bash
 
+source ProcessUAList.cfg
+
 # SET DIRS
 BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 LIBDIR="${BASEDIR}/../_LIB"
 PICKLEDIR="${LIBDIR}/pickle"
 DATADIR="${LIBDIR}/data"
+CSVDIR="${LIBDIR}/csv"
 
 SYSDIR="${BASEDIR}/../_SYS"
 PYTHONDIR="${SYSDIR}/python"
 
-python3 ${PYTHONDIR}/InitUAList.py ${PICKLEDIR}
+WORKDIR="${BASEDIR}/../_WORK"
+
+# Create working folder
+mkdir -p ${WORKDIR}/$$
+
+# Make single csv of user agents
+for _idx in $(seq 1 ${#UAS[@]})
+do
+	cat ${CSVDIR}/${UAS[${_idx}]} >>${WORKDIR}/$$/_alluas.csv
+done
+
+python3 ${PYTHONDIR}/InitUAList.py "${CSVDIR}" "${PICKLEDIR}" "${WORKDIR}/$$" "_alluas.csv"
+
+# Delete temp DIR
+rm -Rf ${WORKDIR}/$$
+
