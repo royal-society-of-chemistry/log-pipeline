@@ -48,8 +48,9 @@ This repository contains the code for a data pipeline that takes as its input we
   (a) Edit/create the files that contain the details of the IP to name relationships. Details of formatting can be found in "[yourfolder]/_SYS/ProcessCustomIPs.cfg". An example file with the basic internal IP range is here: "[yourfolder]/_LIB/csv/ips.csv"
   (b) Edit "[yourfolder]/_SYS/ProcessCustomIPs.cfg" to list all the files created in step (a).
   (c) Run the script "[yourfolder]/_SYS/ProcessCustomIPs.bsh". A single file should appear in the "[yourfolder]/_LIB/data" folder: mmorg.dat
- 7.  Edit the file [yourfolder]/_PIPES/Pipe1/CleanLogFiles.cfg to add:
-  (a) appropriate find/replace regex patterns
+ 7.  Edit the file [yourfolder]/_PIPES/Pipe1/CleanLogFiles.cfg to:
+
+  (a) add appropriate find/replace regex patterns
   (b) set the number of processor cores
   (c) define the location(s) of the log file data to be processed
   (d) define the final locations of bot and nonbot log data after processing
