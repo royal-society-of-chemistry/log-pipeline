@@ -19,9 +19,9 @@ This repository contains the code for a data pipeline that takes as its input we
  9.  Deduplicates the user activity to remove multiple clicks
 10.  Gives separate output files for bot and nonbot traffic. 
 
-### How do I get set up? ###
+## How do I get set up? ##
 
-* Summary of set up
+### Summary of set up ###
 
  1.  Clone the repository to your local machine
  2.  Download some data files from other sites
@@ -29,16 +29,16 @@ This repository contains the code for a data pipeline that takes as its input we
  4.  Run some set-up scripts
  5.  Ready to go!
 
-* Dependencies
+### Dependencies ###
 
-Ubuntu Linux
-Python 3
+* Ubuntu Linux
+* Python 3
 
-* Database configuration
-* How to run tests
-* Deployment instructions
+### Database configuration ###
+### How to run tests ###
+### Deployment instructions ###
 
-### Who do I talk to? ###
+## Who do I talk to? ##
 
 * Jeff White (whitejr@rsc.org)
 * Data Science at RSC: http://www.rsc.org/data-science
