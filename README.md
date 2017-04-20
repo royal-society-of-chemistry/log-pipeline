@@ -56,7 +56,7 @@ Execute the script: **[yourfolder]/_PIPES/Pipe1/CleanLogFiles.bsh**
 
 The script expects the original log files to be in the "NCSA Combined Log Format":
 
-  host rfc931 username date:time request statuscode bytes referrer user_agent cookie
+    host rfc931 username date:time request statuscode bytes referrer user_agent cookie
 
 They should be compressed as RAR archives; the log files within the RAR file can be optionally compressed as GZIP archives.
 
