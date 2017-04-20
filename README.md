@@ -4,7 +4,7 @@ This README would normally document whatever steps are necessary to get your app
 
 ### What is this repository for? ###
 
-* Quick summary
+#### Quick summary ####
 
 This repository contains the code for a data pipeline that takes as its input webserver log files. The pipeline does the following:
 
