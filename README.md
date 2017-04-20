@@ -58,6 +58,8 @@ The script expects the original log files to be in the "NCSA Combined Log Format
 
  host rfc931 username date:time request statuscode bytes referrer user_agent cookie
 
+They should be compressed as RAR archives; the log files within the RAR file can be optionally compressed as GZIP archives.
+
 ## Who do I talk to? ##
 
 * Jeff White (whitejr@rsc.org)
